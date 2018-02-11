@@ -39,11 +39,12 @@ public class BoardConsole {
 		while (currentState == GameConstants.GameStatus.PLAYING) {
 			availableMoves = this.getAvailableMoves(currentPlayer);
 			if (availableMoves.size() != 0) {
-				System.out.println("Current Player - " + currentPlayer + ", Your turn:");
+				System.out.println("Current Player - " + (currentPlayer == GameConstants.SquareColor.BLACK ? "X" : "O")
+						+ ", Please make a move:");
 				System.out.println("");
 				int[] inputs = consoleInputParser(playerMove);
 				if (inputs == null) {
-					System.out.println("invalid input, please retry.");
+					System.out.println("invalid input, please retry with [1-8]{1}[a-h]{1}");
 					continue;
 				}
 				if (setMove(inputs[0], inputs[1], currentPlayer)) {
