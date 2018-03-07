@@ -1,40 +1,34 @@
 package com.othello.component;
 
-import com.othello.interfaces.Coordinate;
-
-public class Square implements Coordinate {
+public class Coordinate {
 
 	private int x;
 	private int y;
 	private int dir;
 
-	public Square(int x, int y) {
+	public Coordinate(int x, int y) {
 		this.x = x;
 		this.y = y;
 	}
 
-	public Square(int x, int y, int dir) {
+	public Coordinate(int x, int y, int dir) {
 		this.x = x;
 		this.y = y;
 		this.dir = dir;
 	}
 
-	@Override
 	public int getX() {
 		return x;
 	}
 
-	@Override
 	public int getY() {
 		return y;
 	}
 
-	@Override
 	public void setX(int x) {
 		this.x = x;
 	}
 
-	@Override
 	public void setY(int y) {
 		this.y = y;
 	}
@@ -66,7 +60,8 @@ public class Square implements Coordinate {
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		if (this.x == ((Square) obj).getX() && this.y == ((Square) obj).getY() && this.dir == ((Square) obj).getDir()) {
+		if (this.x == ((Coordinate) obj).getX() && this.y == ((Coordinate) obj).getY()
+				&& this.dir == ((Coordinate) obj).getDir()) {
 			return true;
 		}
 		return false;

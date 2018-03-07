@@ -1,60 +1,58 @@
 package com.othello.console;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.othello.component.Coordinate;
 import com.othello.component.GameBoard;
 import com.othello.component.GameConstants;
-import com.othello.component.Square;
 
 public class BoardConsole {
-
-	private static Scanner playerMove = new Scanner(System.in);
 	private GameBoard board;
-	private GameConstants.SquareColor currentPlayer;
 	private GameConstants.GameStatus currentState;
-	private ArrayList<Square> directions;
-	private int globalCounter;
-	private HashMap<Square, String> availableMoves;
+	private ArrayList<Coordinate> directions;
 
-	public BoardConsole(GameBoard board, GameConstants.SquareColor currentPlayer) {
+	public BoardConsole(GameBoard board) {
 		this.board = board;
-		this.currentPlayer = currentPlayer;
+		initBoard();
 	}
 
 	private void initBoard() {
 		board.boardSetup();
 		board.printBoard();
 		currentState = GameConstants.GameStatus.PLAYING;
-		globalCounter = 0;
-		setStaticDirections();
+		initStaticDirections();
 	}
 
 	public void playGame(GameConstants.SquareColor playPiece) {
-		initBoard();
-		currentPlayer = playPiece;
+		ArrayList<GameBoard> undoBoards = new ArrayList<GameBoard>();
+		HashSet<Coordinate> availableMoves;
 		while (currentState == GameConstants.GameStatus.PLAYING) {
-			availableMoves = this.getAvailableMoves(currentPlayer);
+			availableMoves = getAvailableMoves(playPiece);
 			if (availableMoves.size() != 0) {
-				System.out.println("Current Player - " + (currentPlayer == GameConstants.SquareColor.BLACK ? "X" : "O")
+				System.out.println("Current Player - " + (playPiece == GameConstants.SquareColor.BLACK ? "X" : "O")
 						+ ", Please make a move:");
 				System.out.println("");
-				int[] inputs = consoleInputParser(playerMove);
+				int[] inputs = consoleInputParser(new Scanner(System.in));
 				if (inputs == null) {
-					System.out.println("invalid input, please retry with [1-8]{1}[a-h]{1}");
 					continue;
 				}
-				if (setMove(inputs[0], inputs[1], currentPlayer)) {
-					currentPlayer = GameConstants.getOppositePlayer(currentPlayer);
-					board.printBoard();
+				if (inputs.length == 1) {
+					if (undoMove(undoBoards)) {
+						playPiece = GameConstants.getOppositePlayer(playPiece);
+					}
+					continue;
+				}
+				if (setMove(inputs[0], inputs[1], playPiece, availableMoves, undoBoards)) {
+					playPiece = GameConstants.getOppositePlayer(playPiece);
 				} else {
 					continue;
 				}
 			}
-			if (isGameOver(currentPlayer)) {
+			if (isGameOver(playPiece)) {
 				currentState = GameConstants.GameStatus.OVER;
 				break;
 			}
@@ -62,19 +60,35 @@ public class BoardConsole {
 	}
 
 	public int[] consoleInputParser(Scanner in) {
-		int[] inputs = new int[2];
+		int[] inputs = null;
 		if (in.hasNext()) {
 			String[] temp = inputCheck(in.next());
 			if (temp == null) {
+				System.out.println("invalid input, please retry with [1-8]{1}[a-h]{1}");
 				return null;
 			}
-			inputs[0] = Integer.parseInt(temp[0]) - 1;
-			inputs[1] = (int) (temp[1].toCharArray())[0] - 97;
+			if (temp.length == 1) {
+				inputs = new int[1];
+				inputs[0] = -1;
+			} else {
+				inputs = new int[2];
+				inputs[0] = Integer.parseInt(temp[0]) - 1;
+				inputs[1] = (int) (temp[1].toCharArray())[0] - 97;
+			}
 		}
 		return inputs;
 	}
 
 	private String[] inputCheck(String next) {
+		if (next.length() == 1) {
+			String input = next.toString();
+			if (input.equals("u")) {
+				String[] inputs = new String[1];
+				inputs[0] = input;
+				return inputs;
+			}
+		}
+
 		if (next.length() != 2) {
 			return null;
 		}
@@ -106,21 +120,21 @@ public class BoardConsole {
 		return null;
 	}
 
-	private ArrayList<Square> setStaticDirections() {
-		directions = new ArrayList<Square>(8);
-		directions.add(new Square(1, 1));
-		directions.add(new Square(1, 0));
-		directions.add(new Square(1, -1));
-		directions.add(new Square(0, -1));
-		directions.add(new Square(-1, -1));
-		directions.add(new Square(-1, 0));
-		directions.add(new Square(-1, 1));
-		directions.add(new Square(0, 1));
+	private ArrayList<Coordinate> initStaticDirections() {
+		directions = new ArrayList<Coordinate>(8);
+		directions.add(new Coordinate(1, 1));
+		directions.add(new Coordinate(1, 0));
+		directions.add(new Coordinate(1, -1));
+		directions.add(new Coordinate(0, -1));
+		directions.add(new Coordinate(-1, -1));
+		directions.add(new Coordinate(-1, 0));
+		directions.add(new Coordinate(-1, 1));
+		directions.add(new Coordinate(0, 1));
 		return directions;
 	}
 
-	private HashMap<Square, String> getAvailableMoves(GameConstants.SquareColor playPiece) {
-		HashMap<Square, String> availableMoves = new HashMap<Square, String>();
+	public HashSet<Coordinate> getAvailableMoves(GameConstants.SquareColor playPiece) {
+		HashSet<Coordinate> availableMoves = new HashSet<Coordinate>();
 		int maxRow = board.getRows() - 1;
 		int maxCol = board.getColumns() - 1;
 
@@ -128,14 +142,15 @@ public class BoardConsole {
 			for (int col = 0; col <= maxCol; col++) {
 				if (board.getBoardSquares()[row][col].getSquareColor() == playPiece) {
 					for (int dir = 0; dir < 8; dir++) {
-						globalCounter = 1;
-						Square direction = directions.get(dir);
+						int count = 1;
+						Coordinate direction = directions.get(dir);
 						int boundRow = row - direction.getX();
 						int boundCol = col - direction.getY();
 						if (!((boundRow < 0 || boundRow > maxRow) || (boundCol < 0 || boundCol > maxCol))) {
-							if (isValid(boundRow, boundCol, dir, playPiece)) {
-								availableMoves.put(new Square(row - globalCounter * direction.getX(),
-										col - globalCounter * direction.getY(), dir), null);
+							count = isValid(boundRow, boundCol, dir, playPiece, count);
+							if (count != -1) {
+								availableMoves.add(new Coordinate(row - count * direction.getX(),
+										col - count * direction.getY(), dir));
 							}
 						}
 					}
@@ -145,33 +160,34 @@ public class BoardConsole {
 		return availableMoves;
 	}
 
-	private boolean isValid(int row, int col, int dir, GameConstants.SquareColor playPiece) {
+	private int isValid(int row, int col, int dir, GameConstants.SquareColor playPiece, int count) {
 		int maxRow = board.getRows() - 1;
 		int maxCol = board.getColumns() - 1;
 
-		globalCounter++;
+		count++;
 		if (board.getBoardSquares()[row][col].getSquareColor() == GameConstants.SquareColor.EMPTY) {
-			return false;
+			return -1;
 		}
 		if (board.getBoardSquares()[row][col].getSquareColor() == playPiece) {
-			return false;
+			return -1;
 		} else {
-			Square direction = directions.get(dir);
+			Coordinate direction = directions.get(dir);
 			int boundRow = row - direction.getX();
 			int boundCol = col - direction.getY();
 			if (!((boundRow < 0 || boundRow > maxRow) || (boundCol < 0 || boundCol > maxCol))) {
 				if (board.getBoardSquares()[boundRow][boundCol].getSquareColor() == GameConstants.SquareColor.EMPTY) {
-					return true;
+					return count;
 				} else {
-					return isValid(boundRow, boundCol, dir, playPiece);
+					return isValid(boundRow, boundCol, dir, playPiece, count);
 				}
 			} else {
-				return false;
+				return -1;
 			}
 		}
 	}
 
-	private boolean setMove(int row, int col, GameConstants.SquareColor playPiece) {
+	public boolean setMove(int row, int col, GameConstants.SquareColor playPiece, HashSet<Coordinate> availableMoves,
+			ArrayList<GameBoard> undoBoards) {
 		int maxRow = board.getRows() - 1;
 		int maxCol = board.getColumns() - 1;
 
@@ -180,8 +196,11 @@ public class BoardConsole {
 		}
 
 		if (validMove(row, col, availableMoves)) {
+			GameBoard tempBoard = board.deepCopy();
 			board.getBoardSquares()[row][col].setFieldStatus(playPiece);
 			flipPiece(row, col, playPiece, availableMoves);
+			undoBoards.add(tempBoard);
+			board.printBoard();
 			return true;
 		} else {
 			System.out.println("Invalid move. Please try again.");
@@ -189,28 +208,27 @@ public class BoardConsole {
 		}
 	}
 
-	private boolean validMove(int row, int col, HashMap<Square, String> availableMoves) {
+	private boolean validMove(int row, int col, HashSet<Coordinate> availableMoves) {
 		if (availableMoves.size() == 0) {
 			return false;
 		}
 
 		for (int dir = 0; dir < 8; dir++) {
-			if (availableMoves.containsKey(new Square(row, col, dir))) {
+			if (availableMoves.contains(new Coordinate(row, col, dir))) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	private void flipPiece(int row, int col, GameConstants.SquareColor playPiece,
-			HashMap<Square, String> availableMoves) {
+	private void flipPiece(int row, int col, GameConstants.SquareColor playPiece, HashSet<Coordinate> availableMoves) {
 		for (int dir = 0; dir < 8; dir++) {
 			int changedRow = row;
 			int changedCol = col;
-			Square direction = directions.get(dir);
+			Coordinate direction = directions.get(dir);
 			int x = direction.getX();
 			int y = direction.getY();
-			if (availableMoves.containsKey(new Square(changedRow, changedCol, dir))) {
+			if (availableMoves.contains(new Coordinate(changedRow, changedCol, dir))) {
 				while (board.getBoardSquares()[changedRow + x][changedCol + y].getSquareColor() != playPiece) {
 					board.getBoardSquares()[changedRow + x][changedCol + y].setFieldStatus(playPiece);
 					changedRow += x;
@@ -220,7 +238,7 @@ public class BoardConsole {
 		}
 	}
 
-	private boolean isGameOver(GameConstants.SquareColor playPiece) {
+	public boolean isGameOver(GameConstants.SquareColor playPiece) {
 		if (getAvailableMoves(playPiece).size() == 0) {
 			int maxRow = board.getRows() - 1;
 			int maxCol = board.getColumns() - 1;
@@ -237,11 +255,34 @@ public class BoardConsole {
 					}
 				}
 			}
-			System.out.println("Player " + GameConstants.getOppositePlayer(playPiece) + " wins"
-					+ (playPiece == GameConstants.SquareColor.BLACK ? "( " + blackCount + " vs " + whiteCount + " )"
-							: "( " + whiteCount + " vs " + blackCount + " )"));
+			System.out.println("Player "
+					+ (GameConstants.getOppositePlayer(playPiece) == GameConstants.SquareColor.BLACK ? " X wins "
+							: " O wins ")
+					+ (playPiece == GameConstants.SquareColor.BLACK
+							? "( X: " + blackCount + " vs O: " + whiteCount + " )"
+							: "( O: " + whiteCount + " vs X: " + blackCount + " )"));
 			return true;
 		}
 		return false;
+	}
+
+	public boolean undoMove(ArrayList<GameBoard> undoBoards) {
+		GameBoard tempBoard = popUndoBoard(undoBoards);
+		if (tempBoard == null) {
+			System.out.println("There is nothing to undo!");
+			return false;
+		}
+		board = tempBoard.deepCopy();
+		board.printBoard();
+		return true;
+	}
+
+	public GameBoard popUndoBoard(ArrayList<GameBoard> undoBoards) {
+		if (undoBoards == null || undoBoards.size() == 0) {
+			return null;
+		}
+		GameBoard board = undoBoards.get(undoBoards.size() - 1);
+		undoBoards.remove(undoBoards.size() - 1);
+		return board;
 	}
 }

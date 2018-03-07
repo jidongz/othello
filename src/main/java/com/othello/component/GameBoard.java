@@ -116,11 +116,27 @@ public class GameBoard {
 		this.columns = columns;
 	}
 
+	public BoardSquare[][] board() {
+		return boardSquares;
+	}
+
 	public BoardSquare[][] getBoardSquares() {
 		return boardSquares;
 	}
 
 	public void setBoardSquares(BoardSquare[][] boardSquares) {
 		this.boardSquares = boardSquares;
+	}
+
+	public GameBoard deepCopy() {
+		BoardSquare[][] copy = new BoardSquare[rows][columns];
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < columns; j++) {
+				copy[i][j] = new BoardSquare(i, j, boardSquares[i][j].getSquareColor());
+			}
+		}
+		GameBoard board = new GameBoard(rows, columns);
+		board.setBoardSquares(copy);
+		return board;
 	}
 }
