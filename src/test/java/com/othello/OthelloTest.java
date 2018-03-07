@@ -66,7 +66,6 @@ public class OthelloTest {
 		Assert.assertNotNull(inputs);
 		Assert.assertEquals(1, inputs.length);
 		Assert.assertEquals(-1, inputs[0]);
-		
 	}
 
 	@Test
@@ -86,17 +85,6 @@ public class OthelloTest {
 		Assert.assertEquals(false, isMove);
 	}
 
-	// 1/0 - - - - - - - -
-	// 2/1 - - - - - - - -
-	// 3/2 - - - - - - - -
-	// 4/3 - - - O X - - -
-	// 5/4 - - - X O - - -
-	// 6/5 - - - - - - - -
-	// 7/6 - - - - - - - -
-	// 8/7 - - - - - - - -
-	// a b c d e f g h
-	// 0 1 2 3 4 5 6 7
-
 	@Test
 	public void testIsGameOver() throws Exception {
 		init();
@@ -105,6 +93,8 @@ public class OthelloTest {
 		boardConsole.setMove(5, 3, GameConstants.SquareColor.WHITE, boardConsole.getAvailableMoves(GameConstants.SquareColor.WHITE),undoBoards);
 		boardConsole.setMove(4, 2, GameConstants.SquareColor.BLACK, boardConsole.getAvailableMoves(GameConstants.SquareColor.BLACK),undoBoards);
 		boardConsole.setMove(3, 5, GameConstants.SquareColor.WHITE, boardConsole.getAvailableMoves(GameConstants.SquareColor.WHITE),undoBoards);
+		
+		Assert.assertEquals(false, boardConsole.isGameOver(GameConstants.SquareColor.BLACK));
 		
 		boardConsole.setMove(2, 5, GameConstants.SquareColor.BLACK, boardConsole.getAvailableMoves(GameConstants.SquareColor.BLACK),undoBoards);
 		boardConsole.setMove(4, 1, GameConstants.SquareColor.WHITE, boardConsole.getAvailableMoves(GameConstants.SquareColor.WHITE),undoBoards);

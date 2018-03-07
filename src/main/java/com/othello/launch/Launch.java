@@ -8,10 +8,7 @@ public class Launch {
 
 	public static void main(String[] args) {
 		GameBoard board = new GameBoard(8, 8);
-
 		BoardConsole boardConsole = new BoardConsole(board);
 		boardConsole.playGame(GameConstants.SquareColor.BLACK);
-
 	}
-
 }

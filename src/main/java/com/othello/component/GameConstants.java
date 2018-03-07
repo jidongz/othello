@@ -14,5 +14,4 @@ public abstract class GameConstants {
 		return (currentPlayer == GameConstants.SquareColor.BLACK) ? GameConstants.SquareColor.WHITE
 				: GameConstants.SquareColor.BLACK;
 	}
-
 }
